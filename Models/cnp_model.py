@@ -59,7 +59,7 @@ class CNPModel:
                                    units=units,
                                    activation='tanh')(x)
 
-        mu = keras.layers.Dense(name='mu', units=self.state_dims)(x)
+        mu = keras.layers.Dense(name='mu', units=self.state_dims, activation='linear')(x)
         log_sigma = keras.layers.Dense(name=f'log_sigma', units=self.state_dims)(x)
         sigma = keras.layers.Lambda(lambda logit: 0.1 + 0.9 * tf.nn.softplus(logit),
                                     name='sigma')(log_sigma)  # bound variance
@@ -89,7 +89,7 @@ class CNPModel:
         vali_data.train = False
 
         self.model.fit(
-            train_data, epochs=epochs, steps_per_epoch=1000,
+            train_data, epochs=epochs, steps_per_epoch=100,
             validation_data=vali_data, validation_steps=20,
             callbacks=[
                 keras.callbacks.EarlyStopping(
@@ -136,26 +136,4 @@ class CNPModel:
         return target_y
 
 
-def gen_context(env, num_context_points=15):
-    # ------------------- Generate Context ------------------------- #
-    # Get context points
-    context_x = []
-    context_y = []
 
-    while len(context_x) < num_context_points:
-        obs = env.reset()
-        for i in range(100):
-            action = env.action_space.sample()
-            new_obs, rew, done, info = env.step(action)
-            delta = new_obs - obs
-            context_x.append(np.concatenate([obs, np.array([action])]))
-            context_y.append(delta)
-            obs = new_obs
-            if done:
-                break
-
-    idx = np.arange(len(context_x))
-    np.random.shuffle(idx)
-    context_x = np.stack(context_x, axis=0)[idx[:num_context_points]]
-    context_y = np.stack(context_y, axis=0)[idx[:num_context_points]]
-    return context_x, context_y

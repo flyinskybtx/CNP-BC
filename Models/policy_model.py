@@ -1,11 +1,10 @@
 # Model
-from typing import Dict
+import os.path as osp
 
 import tensorflow as tf
 from ray.rllib.models.tf.tf_action_dist import Categorical
 from ray.rllib.models.tf.tf_modelv2 import TFModelV2
 from ray.rllib.offline import JsonReader
-from ray.rllib.utils.types import TensorType
 from tensorflow import keras
 
 
@@ -49,16 +48,32 @@ class FCModel(TFModelV2):
         self.base_model.load_weights(import_file)
 
     def custom_loss(self, policy_loss, loss_inputs):
-        reader = JsonReader(self.model_config['custom_model_config']['offline_dataset'])
-        input_ops = reader.tf_input_ops()
+        if self.model_config['custom_model_config']['offline_dataset'] is not None:
+            savedir = osp.abspath(osp.join(osp.dirname(__file__), '../Data', self.model_config[
+                'custom_model_config']['offline_dataset']))
+            reader = JsonReader(savedir)
+            input_ops = reader.tf_input_ops()
 
-        supervised_obs = input_ops['obs']
-        logits, _ = self.forward({'obs': supervised_obs}, [], None)
-        action_dist = Categorical(logits, self.model_config)
+            obs = input_ops['obs']
+            actions = input_ops['actions']
+            num_samples = tf.shape(obs)[0]
+            obs = tf.repeat(obs, repeats=tf.cast(tf.math.ceil(200 / num_samples), tf.int8), axis=0)[:200]
+            actions = tf.repeat(actions, repeats=tf.cast(tf.math.ceil(200 / num_samples), tf.int8), axis=0)[:200]
 
-        logp = -action_dist.logp(input_ops['actions'])
+            logits, _ = self.forward({'obs': obs}, [], None)
+            action_dist = Categorical(logits, self.model_config)
 
-        self.imitation_loss = tf.reduce_mean(logp)
+            logp = -action_dist.logp(actions)
+
+            self.imitation_loss = tf.reduce_mean(logp)
+        else:
+            self.imitation_loss = 0
         self.policy_loss = policy_loss
 
-        return policy_loss + self.imitation_loss
+        return policy_loss + 0.5 * self.imitation_loss
+
+    def custom_stats(self):
+        return {
+            'policy_loss': self.policy_loss,
+            'imitation_loss': self.imitation_loss,
+        }

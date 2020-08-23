@@ -2,7 +2,7 @@ import numpy as np
 
 
 def cem_optimize(init_mean, reward_func, init_variance=1., samples=20, precision=1e-2,
-                 steps=20, nelite=5, constraint_mean=None, constraint_variance=(-999999, 999999)):
+                 steps=5, nelite=5, constraint_mean=None, constraint_variance=(-999999, 999999)):
     """
         cem_optimize minimizes cost_function by iteratively sampling values around the current mean with a set variance.
         Of the sampled values the mean of the nelite number of samples with the lowest cost is the new mean for the next iteration.
@@ -30,7 +30,7 @@ def cem_optimize(init_mean, reward_func, init_variance=1., samples=20, precision
         candidates = np.stack(
             [np.random.multivariate_normal(m, np.diag(v), size=samples) for m, v in zip(mean, variance)])
         # apply action constraints
-        # process continuous random samples into available discrete actions
+        # process continuous random samples into available discrete context_actions
         candidates = np.clip(np.round(candidates), constraint_mean[0], constraint_mean[1]).astype(np.int)
 
         rewards = reward_func(candidates)
@@ -51,46 +51,62 @@ def cem_optimize(init_mean, reward_func, init_variance=1., samples=20, precision
 
 
 class NaiveMPCController:
-    def __init__(self, action_space, dynamics, cost_fn, horizon=5, num_simulated_paths=10):
+    def __init__(self, action_space, dynamics, reward_fn, horizon=50, samples=10):
         """
 
         :param action_space:
         :param dynamics:
-        :param cost_fn:
+        :param reward_fn:
         :param horizon:
-        :param num_simulated_paths:
+        :param samples:
         """
         self.name = 'Naive_MPC'
         self.dynamics = dynamics
         self.horizon = horizon
-        self.num_simulated_paths = num_simulated_paths
+        self.samples = samples
         self.action_space = action_space
-        self.cost_fn = cost_fn
+        self.reward_fn = reward_fn
 
-    def get_action(self, state):
-        states = np.repeat(np.array(state).reshape(1, -1), self.num_simulated_paths, axis=0)
+    def next_action(self, obs, print_expectation=False):
+        """
+
+        :param print_expectation:
+        :param obs:
+        :return: single action
+        """
+        self.state = obs
         trajs = []
-        rewards = np.zeros((self.num_simulated_paths, 1))
-        for time_idx in range(self.horizon):
-            actions = np.array([self.action_space.sample() for _ in range(self.num_simulated_paths)])
-            actions = actions.reshape(self.num_simulated_paths, -1)
-            trajs.append(actions)
+        for _ in range(self.horizon):
+            trajs.append(np.array([self.action_space.sample() for _ in range(self.samples)]).reshape(self.samples, -1))
+        trajs = np.stack(trajs, axis=0)
 
+        rewards = self._expected_reward(trajs)
+        sorted_idx = np.argsort(rewards)[::-1]  # descending
+        best_reward = rewards[sorted_idx[0]]
+        best_traj = trajs[:, sorted_idx[0], :]
+
+        if print_expectation:
+            print('Reward expectation: ', best_reward)
+        return best_traj[0]
+
+    def _expected_reward(self, trajs):
+        # trajs shape: (horizon, num_samples, action_dims)
+        num_samples = trajs.shape[1]
+        states = np.repeat(np.expand_dims(self.state, axis=0), num_samples, axis=0)  # shape (num_samples, state_dims)
+        history = []
+        for actions in trajs:
             query_x = np.concatenate([states, actions], axis=-1)
             target_y = self.dynamics.predict(query_x)
-            delta_states = target_y['mu']
-            states += delta_states
+            states += target_y['mu']
+            history.append(states.copy())
 
-            rewards += np.array([[self.cost_fn(s)] for s in states])  # calculate rewards
-
-        trajs = np.concatenate(trajs, axis=-1)
-        best_traj_num = np.argmax(np.sum(rewards, axis=1))
-        best_actions = trajs[best_traj_num, :]
-        return np.split(best_actions, self.horizon, axis=-1)
+        history = np.stack(history, axis=0)
+        rewards = [self.reward_fn(history[:, i, :]) for i in range(num_samples)]
+        return np.array(rewards)
 
 
 class CemMPCController:
-    def __init__(self, action_space, action_dims, dynamics, reward_fn, horizon=5, num_simulated_paths=10):
+    def __init__(self, action_space, action_dims, dynamics, reward_fn, horizon=5, samples=10):
         """
 
         :param action_space:
@@ -98,12 +114,12 @@ class CemMPCController:
         :param dynamics:
         :param reward_fn:
         :param horizon:
-        :param num_simulated_paths:
+        :param samples:
         """
         self.name = 'Cem_MPC'
         self.dynamics = dynamics
         self.horizon = horizon
-        self.num_simulated_paths = num_simulated_paths
+        self.samples = samples
         self.action_space = action_space
         self.action_dims = action_dims
         self.reward_fn = reward_fn
@@ -111,9 +127,10 @@ class CemMPCController:
         self.trajectory = None
         self.state = None
 
-    def next_action(self, obs):
+    def next_action(self, obs, print_expectation=False):
         """
 
+        :param print_expectation:
         :param obs:
         :return: single action
         """
@@ -126,22 +143,24 @@ class CemMPCController:
         self.trajectory, self.expectation = cem_optimize(self.trajectory,
                                                          self._expected_reward,
                                                          constraint_mean=[0, self.action_space.n - 1],
-                                                         samples=self.num_simulated_paths)
+                                                         samples=self.samples)
 
         # update trajectory for next step
         self.trajectory = np.concatenate([
             self.trajectory[:-1],
             np.array([self.action_space.sample()]).reshape(1, -1)
         ])
-        return self.trajectory[0], self.expectation
+        if print_expectation:
+            print('Reward expectation: ', self.expectation)
+        return self.trajectory[0]
 
     def _expected_reward(self, trajs):
         # trajs shape: (horizon, num_samples, action_dims)
         num_samples = trajs.shape[1]
         states = np.repeat(np.expand_dims(self.state, axis=0), num_samples, axis=0)  # shape (num_samples, state_dims)
         history = []
-        for action in trajs:
-            query_x = np.concatenate([states, action], axis=-1)
+        for actions in trajs:
+            query_x = np.concatenate([states, actions], axis=-1)
             target_y = self.dynamics.predict(query_x)
             states += target_y['mu']
             history.append(states.copy())
