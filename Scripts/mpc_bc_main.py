@@ -14,10 +14,10 @@ from Data.basics import gen_context, remove_data, rollout_and_save_data
 from Data.cartpole_data import CNPCartPoleGenerator
 from Envs.custom_cartpole_v1 import CustomCartPole, make_cartpole_reward_on_traj
 from Models.cnp_model import CNPModel
-from Models.policy_model import FCModel
+from Models.policy_model import PolicyFCModel
 
 NUM_CONFIGS = 50
-LEARN_DYNAMICS = True
+LEARN_DYNAMICS = False
 
 if __name__ == '__main__':
     ray.shutdown(True)
@@ -104,24 +104,28 @@ if __name__ == '__main__':
                           max_steps_per_episode=200,
                           controller=cem_controller)
 
-    # 5 Supervised RL for Behavior Cloning
+    # 5.1 Supervised Learning for Good Initialization
+    print('------------------------------')
+    model_name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+    ModelCatalog.register_custom_model(model_name, PolicyFCModel)
+
+    model_config = {
+        'custom_model': model_name,
+        "custom_model_config": {
+            'hiddens': [256, 128, 16],
+            'offline_dataset': f'offline/cartpole/{cem_controller.name}',
+        }
+    }
+
+    # 5.2 Supervised RL for Behavior Cloning
     print('------------------------------')
     register_env('MPC-BC-v1', lambda config: CustomCartPole(config))
-
-    model_name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-    ModelCatalog.register_custom_model(model_name, FCModel)
 
     rl_config = {
         "train_batch_size": 200,
         'num_workers': 0,
         'env_config': chosen_config,
-        'model': {
-            'custom_model': model_name,
-            "custom_model_config": {
-                'hiddens': [256, 128, 16],
-                'offline_dataset': f'offline/cartpole/{cem_controller.name}',
-            },
-        },
+        'model': model_config,
     }
     results = []
     dqn_trainer = dqn.DQNTrainer(config=rl_config, env='MPC-BC-v1')
@@ -140,3 +144,4 @@ if __name__ == '__main__':
             rollout.rollout(dqn_trainer, env_name='CustomCartPole-v1', num_steps=50, num_episodes=1, no_render=False)
 
     # 6. Goto 3 and Collect Data for Dynamics Prediction and Context
+

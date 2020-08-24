@@ -8,6 +8,8 @@ from ray.rllib.evaluation import SampleBatchBuilder
 from ray.rllib.offline import JsonWriter
 from tqdm import tqdm
 
+from Data import DATA_DIR
+
 
 def remove_data(savedir, pattern='*.json'):
     """ Remove old data according to pattern in 'savedir'
@@ -15,7 +17,7 @@ def remove_data(savedir, pattern='*.json'):
     :param pattern:
     :return:
     """
-    savedir = osp.abspath(osp.join(osp.dirname(__file__), savedir))
+    savedir = osp.join(DATA_DIR, savedir)
     old_files = glob.glob(f"{savedir}/{pattern}")
     for f in old_files:
         os.remove(f)
@@ -33,7 +35,8 @@ def rollout_and_save_data(env_cls, savedir, env_configs, episodes, max_steps_per
     :param controller:
     :return:
     """
-    savedir = osp.abspath(osp.join(osp.dirname(__file__), savedir))
+    savedir = osp.join(DATA_DIR, savedir)
+
     batch_builder = SampleBatchBuilder()
     writer = JsonWriter(f"{savedir}")
 
@@ -103,4 +106,3 @@ def gen_context(env, num_context_points=15, actions=None):
     context_x = np.stack(context_x, axis=0)[idx[:num_context_points]]  # shape: num_points * (state_dim + action_dim)
     context_y = np.stack(context_y, axis=0)[idx[:num_context_points]]  # shape: num_points * state_dim
     return context_x, context_y
-

@@ -14,7 +14,7 @@ from Algorithms.mpc import NaiveMPCController
 from Data.cartpole_data import CNPCartPoleGenerator
 from Envs.custom_cartpole_v1 import CustomCartPole, make_cartpole_reward
 from Models.cnp_model import CNPModel
-from Models.policy_model import FCModel
+from Models.policy_model import PolicyFCModel
 
 if __name__ == '__main__':
     train_dynamics = False

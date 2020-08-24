@@ -16,7 +16,7 @@ from Data.cartpole_data import CNPCartPoleGenerator
 from Envs.custom_cartpole_v1 import CustomCartPole, make_cartpole_reward_on_traj
 from Models.cnp_model import CNPModel
 from Models.mlp_model import MLPModel
-from Models.policy_model import FCModel
+from Models.policy_model import PolicyFCModel
 from sklearn.preprocessing import OneHotEncoder
 
 NUM_CONFIGS = 50

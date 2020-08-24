@@ -6,6 +6,8 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from tensorflow import keras
 
+from Models import MODEL_DIR
+
 
 def dist_logp(y_true, y_pred):
     mu, sigma = tf.split(y_pred, 2, axis=-1)
@@ -98,16 +100,17 @@ class CNPModel:
                     restore_best_weights=True),
             ]
         )
-        self.model.save(osp.abspath(osp.join(osp.dirname(__file__), f'Checkpoints/{self.name}')))
+        self.model.save(osp.join(MODEL_DIR, f'Checkpoints/{self.name}'))
 
     def load_model(self):
-        self.model = keras.models.load_model(
-            osp.abspath(osp.join(osp.dirname(__file__), f'Checkpoints/{self.name}')),
-            custom_objects={'dist_logp': dist_logp, 'dist_mse': dist_mse, 'stats': stats}
-        )
+        self.model = keras.models.load_model(osp.join(MODEL_DIR, f'Checkpoints/{self.name}'),
+                                             custom_objects={'dist_logp': dist_logp,
+                                                             'dist_mse': dist_mse,
+                                                             'stats': stats})
         return self.model.summary()
 
     def set_context(self, context_x, context_y):
+        print(f"Set {context_x.shape[0]} context points for dynamics")
         # check shape
         assert context_x.shape[0] == context_y.shape[0], "Number of contexts not match"
         assert context_y.shape[-1] == self.state_dims
@@ -134,6 +137,3 @@ class CNPModel:
         target_y = self.model.predict(query)
         target_y = {name: pred for name, pred in zip(self.model.output_names, target_y)}
         return target_y
-
-
-

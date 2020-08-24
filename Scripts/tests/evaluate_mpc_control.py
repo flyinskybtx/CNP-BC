@@ -15,7 +15,7 @@ from Data.basics import gen_context, rollout_and_save_data
 from Data.cartpole_data import CNPCartPoleGenerator
 from Envs.custom_cartpole_v1 import CustomCartPole, make_cartpole_reward_on_traj
 from Models.cnp_model import CNPModel
-from Models.policy_model import FCModel
+from Models.policy_model import PolicyFCModel
 
 if __name__ == '__main__':
     env_config = {
@@ -44,7 +44,7 @@ if __name__ == '__main__':
                                   action_dims=1,
                                   dynamics=cartpole_dynamics,
                                   reward_fn=reward_fn,
-                                  horizon=50,
+                                  horizon=20,
                                   samples=20)
 
     # ------------- start rollout ------------------- #
@@ -59,8 +59,8 @@ if __name__ == '__main__':
         if done:
             break
 
-    rollout_and_save_data(num_configs=1,
-                          episodes=100,
-                          steps_per_episode=1000,
-                          controller=controller,
-                          savedir=f'offline/cartpole/{controller.name}')
+    # rollout_and_save_data(num_configs=1,
+    #                       episodes=100,
+    #                       steps_per_episode=1000,
+    #                       controller=controller,
+    #                       savedir=f'offline/cartpole/{controller.name}')

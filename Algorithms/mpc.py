@@ -51,7 +51,7 @@ def cem_optimize(init_mean, reward_func, init_variance=1., samples=20, precision
 
 
 class NaiveMPCController:
-    def __init__(self, action_space, dynamics, reward_fn, horizon=50, samples=10):
+    def __init__(self, action_space, action_dims, dynamics, reward_fn, horizon=5, samples=10):
         """
 
         :param action_space:
@@ -61,6 +61,7 @@ class NaiveMPCController:
         :param samples:
         """
         self.name = 'Naive_MPC'
+        self.action_dims = action_dims
         self.dynamics = dynamics
         self.horizon = horizon
         self.samples = samples

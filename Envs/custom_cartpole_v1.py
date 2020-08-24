@@ -8,6 +8,7 @@ class CustomCartPole(CartPoleEnv):
         super().__init__()
 
         # Re-intialize parameters to custom
+        self.config = config
         self.gravity = 9.8
         self.masscart = config['masscart']
         self.masspole = config['masspole']

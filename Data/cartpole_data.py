@@ -8,14 +8,26 @@ import numpy as np
 from ray.rllib.offline import JsonReader
 from tensorflow import keras
 
+from Data import DATA_DIR
+
 
 class CNPCartPoleGenerator(keras.utils.Sequence):
-    def __init__(self, savedir, batch_size, num_context, train=False):
-        self.savedir = osp.abspath(osp.join(osp.dirname(__file__), savedir))
+    def __init__(self, savedir, batch_size, num_context, action_dims=1, train=False):
+        """
+
+        :param savedir:
+        :param batch_size:
+        :param num_context:
+        :param action_dims:
+        :param train:
+        """
+        self.savedir = osp.join(DATA_DIR, savedir)
+
         self.reader = JsonReader(self.savedir)
         self.batch_size = batch_size
         self.min_num_context, self.max_num_context = num_context
         self.train = train
+        self.action_dims = action_dims
         self.on_epoch_end()
 
     def __getitem__(self, index):
@@ -65,6 +77,42 @@ class CNPCartPoleGenerator(keras.utils.Sequence):
 
     def __len__(self):
         return 1000000
+
+
+class PolicyDataGenerator(keras.utils.Sequence):
+    def __init__(self, savedir, batch_size, action_dims=1):
+        """
+
+        :param savedir:
+        :param batch_size:
+        """
+        self.savedir = osp.join(DATA_DIR, savedir)
+        self.reader = JsonReader(self.savedir)
+        self.batch_size = batch_size
+        self.action_dims = action_dims
+
+    def __getitem__(self, index):
+        batch = self.get_batch(self.batch_size)
+        obs = batch['obs']
+        actions = batch['actions'].reshape(-1, self.action_dims)
+        return obs, actions
+
+    def __len__(self):
+        return 1000000
+
+    def get_batch(self, batch_size):
+        batch = defaultdict(list)
+        sample = self.reader.next()
+        for k, v in sample.items():
+            batch[k].append(v)
+
+        chosen_length = sample['infos'][0]['length']
+        while len(batch['t']) < batch_size:
+            sample = self.reader.next()
+            if sample['infos'][0]['length'] == chosen_length:
+                for k, v in sample.items():
+                    batch[k].append(v)
+        return {k: np.concatenate(v)[:batch_size] for k, v in batch.items()}
 
 
 if __name__ == '__main__':
