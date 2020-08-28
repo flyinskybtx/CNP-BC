@@ -45,8 +45,8 @@ if __name__ == '__main__':
     a2c_trainer_mf = a3c.A2CTrainer(config=config_rl, env='CustomCartPole-v1')
 
     for i in tqdm(range(100)):
-        result_mf = a2c_trainer_mf.train()
-        result_bc = a2c_trainer_mf.train()
+        result_mf = a2c_trainer_mf.train_model()
+        result_bc = a2c_trainer_mf.train_model()
 
         print(f"\t RL Reward: "
               f"{result_mf['episode_reward_max']:.4f}  |  "

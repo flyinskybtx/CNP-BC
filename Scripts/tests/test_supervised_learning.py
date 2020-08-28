@@ -1,16 +1,19 @@
 import copy
-import numpy as np
-import tensorflow as tf
-from tensorflow import keras
 import os.path as osp
 
-from Data import DATA_DIR
+import numpy as np
+import ray
+from tensorflow import keras
+
 from Data.cartpole_data import PolicyDataGenerator
 from Envs.custom_cartpole_v1 import CustomCartPole
 from Models import MODEL_DIR
 from Models.policy_model import PolicyFCModel, logits_dist_loss, logits_cate_acc
 
 if __name__ == '__main__':
+    ray.shutdown(True)
+    ray.init(num_gpus=1)
+
     env_configs = {'masscart': 1.0,
                    'masspole': 0.1,
                    'length': 0.5,
@@ -33,7 +36,9 @@ if __name__ == '__main__':
         metrics={'logits': logits_cate_acc},
         optimizer=keras.optimizers.Adam(lr=5e-3))
 
-    dataset = PolicyDataGenerator(model_config['custom_model_config']['offline_dataset'], batch_size=16, action_dims=1)
+    dataset = PolicyDataGenerator(model_config['custom_model_config']['offline_dataset'],
+                                  batch_size=16,
+                                  action_dims=1)
     vali_dataset = copy.deepcopy(dataset)
 
     records = model.base_model.fit(
@@ -43,6 +48,7 @@ if __name__ == '__main__':
                 monitor='val_loss', patience=5, mode='auto', restore_best_weights=True),
         ]
     )
+
     model.base_model.save_weights(osp.join(MODEL_DIR, f'Checkpoints/Naive_MPC.h5'))
     xs, ys, = dataset.__getitem__(0)
     logits, values = model.base_model.predict(xs)

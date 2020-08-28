@@ -2,6 +2,7 @@ import copy
 import glob
 import os
 import os.path as osp
+import time
 
 import numpy as np
 from ray.rllib.evaluation import SampleBatchBuilder
@@ -36,12 +37,12 @@ def rollout_and_save_data(env_cls, savedir, env_configs, episodes, max_steps_per
     :return:
     """
     savedir = osp.join(DATA_DIR, savedir)
-
     batch_builder = SampleBatchBuilder()
     writer = JsonWriter(f"{savedir}")
 
     pbar = tqdm(total=len(env_configs) * episodes)
-    for config in env_configs:
+    for config_num, config in enumerate(env_configs):
+
         env = env_cls(config)
         for eps_id in range(episodes):
             obs = env.reset()
@@ -64,7 +65,7 @@ def rollout_and_save_data(env_cls, savedir, env_configs, episodes, max_steps_per
                     new_obs=new_obs,
                     actions=action,
                     dones=done,
-                    infos=config,
+                    infos={'config_num': config_num},
                 )
                 obs = new_obs.copy()
                 t += 1

@@ -18,6 +18,21 @@ class CustomCartPole(CartPoleEnv):
         self.force_mag = config['force_mag']
         self.tau = 0.02  # seconds between state updates
         self.kinematics_integrator = 'euler'
+        self.max_steps = 200
+
+    def step(self, action):
+        obs, reward, done, info = super().step(action)
+        if not done:
+            self.step_count += 1
+            if self.step_count >= self.max_steps:
+                done = True
+                reward = 0
+        return obs, reward, done, info
+
+    def reset(self):
+        obs = super(CustomCartPole, self).reset()
+        self.step_count = 0
+        return obs
 
 
 def make_cartpole_reward(env: CartPoleEnv):

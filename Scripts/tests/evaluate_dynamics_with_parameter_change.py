@@ -65,7 +65,7 @@ if __name__ == '__main__':
                                               num_context=[15, 25],
                                               train=True)
         cartpole_dynamics.build_model(encoder_hiddens=[128, 128, 128, 128], decoder_hiddens=[128, 128])
-        cartpole_dynamics.train(data_generator, epochs=100)
+        cartpole_dynamics.train_model(data_generator, epochs=100)
     else:
         cartpole_dynamics.load_model()
 

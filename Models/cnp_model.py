@@ -77,7 +77,7 @@ class CNPModel:
                                         name=self.name)
         return self.model.summary()
 
-    def train(self, generator, epochs=100, ):
+    def train_model(self, train_generator, vali_generator, epochs=100, ):
         self.model.compile(
             # run_eagerly=True,
             optimizer=keras.optimizers.Adam(5e-4),
@@ -85,22 +85,26 @@ class CNPModel:
             metrics={'dist_concat': dist_mse, 'mu': stats},
         )
 
-        train_data = copy.deepcopy(generator)
-        train_data.train = True
-        vali_data = copy.deepcopy(generator)
-        vali_data.train = False
+        train_data = train_generator
+        train_data.train_model = True
+        vali_data = vali_generator
+        vali_data.train_model = False
 
         self.model.fit(
-            train_data, epochs=epochs, steps_per_epoch=100,
+            train_data, epochs=epochs,
+            # steps_per_epoch=100,
             validation_data=vali_data, validation_steps=20,
             callbacks=[
                 keras.callbacks.EarlyStopping(
                     monitor='val_dist_concat_loss',
-                    patience=5, mode='auto',
+                    patience=3, mode='auto',
                     restore_best_weights=True),
             ]
         )
+
+    def save_model(self):
         self.model.save(osp.join(MODEL_DIR, f'Checkpoints/{self.name}'))
+        print(f'Saved dynamics model to Checkpoints/{self.name}')
 
     def load_model(self):
         self.model = keras.models.load_model(osp.join(MODEL_DIR, f'Checkpoints/{self.name}'),

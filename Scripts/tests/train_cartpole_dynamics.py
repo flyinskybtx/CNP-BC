@@ -43,7 +43,7 @@ if __name__ == '__main__':
         if gen_new_data:
             cartpole_data_gen.random_rollout_and_save_data(num_configs=1, episodes=10000, steps_per_episode=1000)
         cartpole_dynamics.build_model(encoder_hiddens=[32, 16], decoder_hiddens=[16, 32])
-        cartpole_dynamics.train(cartpole_data_gen, epochs=100)
+        cartpole_dynamics.train_model(cartpole_data_gen, epochs=100)
     else:
         cartpole_dynamics.load_model()
 

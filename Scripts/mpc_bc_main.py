@@ -49,12 +49,16 @@ if __name__ == '__main__':
         name='cartpole_dynamics',
     )
     if LEARN_DYNAMICS:
-        data_generator = CNPCartPoleGenerator(savedir='offline/cartpole/random',
+        train_generator = CNPCartPoleGenerator(savedir='offline/cartpole/random',
+                                              batch_size=16,
+                                              num_context=[10, 20],
+                                              train=True)
+        vali_generator = CNPCartPoleGenerator(savedir='offline/cartpole/random',
                                               batch_size=16,
                                               num_context=[10, 20],
                                               train=True)
         cartpole_dynamics.build_model(encoder_hiddens=[32, 16], decoder_hiddens=[16, 32])
-        cartpole_dynamics.train(data_generator, epochs=100)
+        cartpole_dynamics.train_model(train_generator, vali_generator, epochs=100)
     else:
         cartpole_dynamics.load_model()
 
@@ -131,7 +135,7 @@ if __name__ == '__main__':
     dqn_trainer = dqn.DQNTrainer(config=rl_config, env='MPC-BC-v1')
 
     for i in tqdm(range(100)):
-        result_mf = dqn_trainer.train()
+        result_mf = dqn_trainer.train_model()
         print(f"\t RL Reward: "
               f"{result_mf['episode_reward_max']:.4f}  |  "
               f"{result_mf['episode_reward_mean']:.4f}  |  "
