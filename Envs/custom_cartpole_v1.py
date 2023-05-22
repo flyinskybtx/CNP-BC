@@ -1,44 +1,47 @@
 import random
+from typing import Optional, Dict
 
-from gym.envs.classic_control.cartpole import CartPoleEnv
+from gymnasium.envs.classic_control.cartpole import CartPoleEnv
 
 
 class CustomCartPole(CartPoleEnv):
-    def __init__(self, config):
-        super().__init__()
-
+    def __init__(self, env_config: Dict, render_mode: Optional[str] = None):
+        super().__init__(render_mode)
+        
         # Re-intialize parameters to custom
-        self.config = config
+        self.config = env_config
         self.gravity = 9.8
-        self.masscart = config['masscart']
-        self.masspole = config['masspole']
+        self.masscart = env_config['masscart']
+        self.masspole = env_config['masspole']
         self.total_mass = (self.masspole + self.masscart)
-        self.length = config['length']  # actually half the pole's length
+        self.length = env_config['length']  # actually half the pole's length
         self.polemass_length = (self.masspole * self.length)
-        self.force_mag = config['force_mag']
+        self.force_mag = env_config['force_mag']
         self.tau = 0.02  # seconds between state updates
         self.kinematics_integrator = 'euler'
+        
         self.max_steps = 200
-
+        self.step_count = None
+    
     def step(self, action):
-        obs, reward, done, info = super().step(action)
-        if not done:
+        obs, reward, terminated, _, info = super().step(action)
+        if not terminated:
+            self.step_count += 1
             self.step_count += 1
             if self.step_count >= self.max_steps:
-                done = True
-                reward = 0
-        return obs, reward, done, info
-
-    def reset(self):
-        obs = super(CustomCartPole, self).reset()
+                terminated = True
+        return obs, reward, terminated, False, info
+    
+    def reset(self, **kwargs):
+        obs, info = super(CustomCartPole, self).reset(**kwargs)
         self.step_count = 0
-        return obs
+        return obs, info
 
 
-def make_cartpole_reward(env: CartPoleEnv):
+def make_cartpole_reward(env):
     x_thresh = env.x_threshold
     theta_thresh = env.theta_threshold_radians
-
+    
     def cartpole_reward(state):
         """ Given state(obs) return reward """
         x, x_dot, theta, theta_dot = state
@@ -52,14 +55,14 @@ def make_cartpole_reward(env: CartPoleEnv):
             return 0.0
         else:
             return 1.0
-
+    
     return cartpole_reward
 
 
 def make_cartpole_reward_on_traj(env: CartPoleEnv):
     x_thresh = env.x_threshold
     theta_thresh = env.theta_threshold_radians
-
+    
     def cartpole_reward_traj(traj):
         reward = 0.0
         for state in traj:
@@ -75,7 +78,7 @@ def make_cartpole_reward_on_traj(env: CartPoleEnv):
             else:
                 reward += 1.0
         return reward
-
+    
     return cartpole_reward_traj
 
 
@@ -86,13 +89,13 @@ if __name__ == '__main__':
         'length': random.random(),
         'force_mag': 10,
     }
-    env = CustomCartPole(config)
+    env = CustomCartPole(config, render_mode='human')
     reward_fn = make_cartpole_reward(env)
-
+    
     env.reset()
     for _ in range(1000):
         env.render()
-        obs, rew, done, info = env.step(env.action_space.sample())  # take a random action
+        obs, rew, done, _, info = env.step(env.action_space.sample())  # take a random action
         print(reward_fn(obs))
         if done:
             break
