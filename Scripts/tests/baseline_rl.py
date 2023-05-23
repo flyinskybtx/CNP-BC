@@ -1,12 +1,11 @@
 import random
 import string
+from pprint import pprint
 
 import numpy as np
 import ray
 from ray.rllib.algorithms.pg import PGConfig
 from ray.tune import register_env
-from ray.tune.logger import pretty_print
-
 from Envs.custom_cartpole_v1 import CustomCartPole
 
 # from Models.policy_model import PolicyFCModel
@@ -46,14 +45,14 @@ if __name__ == '__main__':
                     'force_mag': 10, },
     )
     algo = algo_config.build()
-    for i in range(10):
+    for i in range(int(1e3)):
         result = algo.train()
-        print(pretty_print(result))
-        
         if i % 5 == 0:
             checkpoint_dir = algo.save()
             print(f"Checkpoint saved in directory {checkpoint_dir}")
-    
+        if i % 10:
+            print(pprint(result['episode_reward_mean']))
+
     # agent = pg.PGTrainer(config=rl_config, env='BaselineCartPole-v1')
     # print(agent.get_policy().model.base_model.summary())
     #

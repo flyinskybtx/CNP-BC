@@ -1,0 +1,25 @@
+import os.path as osp
+
+import numpy as np
+from ray.rllib.algorithms.dqn import DQNConfig
+from ray.rllib.models.preprocessors import get_preprocessor
+from ray.tune import register_env
+
+from Data import WEIGHTS_DIR
+from Envs.custom_cartpole_v1 import CustomCartPole
+
+if __name__ == '__main__':
+    env_name = 'BaselineCartPole-v1'
+    env_config = {'masscart': 1.0,
+                  'masspole': 0.1,
+                  'length': np.random.uniform(low=0.5, high=1.0),
+                  'force_mag': 10, }
+    register_env(env_name, lambda config: CustomCartPole(config))
+    
+    env = CustomCartPole(env_config)
+    prep = get_preprocessor(env.observation_space)(env.observation_space)
+    
+    obs, info = env.reset()
+    print(obs.shape)
+    print(prep.transform(obs).shape)
+    
