@@ -1,6 +1,5 @@
 import numpy as np
 from ray.rllib.algorithms.ars import ARSConfig, ARSTFPolicy
-from ray.rllib.algorithms.dqn import DQNTFPolicy
 from ray.rllib.evaluation.worker_set import WorkerSet
 from ray.tune import register_env
 
@@ -11,10 +10,12 @@ if __name__ == '__main__':
     env_name = 'BaselineCartPole-v1'
     register_env(env_name, lambda config: CustomCartPole(config))
     
-    env_config = {'masscart': 1.0,
-                  'masspole': 0.1,
-                  'length': np.random.uniform(low=0.5, high=1.0),
-                  'force_mag': 10, }
+    env_config = {
+        'masscart': 1.0,
+        'masspole': 0.1,
+        'length': np.random.uniform(low=0.5, high=1.0),
+        'force_mag': 10,
+    }
     env = CustomCartPole(env_config)
     
     # 需要一个策略生成随机动作

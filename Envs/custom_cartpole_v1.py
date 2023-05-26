@@ -11,8 +11,8 @@ class CustomCartPole(CartPoleEnv):
         # Re-intialize parameters to custom
         self.config = env_config
         self.gravity = 9.8
-        self.masscart = env_config['masscart']
-        self.masspole = env_config['masspole']
+        self.masscart = env_config.get('masscart') or self.masscart
+        self.masspole = env_config.get('masspole') or self.masspole
         self.total_mass = (self.masspole + self.masscart)
         self.length = env_config['length']  # actually half the pole's length
         self.polemass_length = (self.masspole * self.length)
