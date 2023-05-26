@@ -141,7 +141,7 @@ def collect_mpc_data(controller, env, num_episodes=20):
     remove_data(f'offline/cartpole/{controller.name}')  # clean existing data
     rollout_and_save_data(CustomCartPole,
                           savedir=f'offline/cartpole/{controller.name}',
-                          env_configs=[env.config],
+                          env_configs=[env.algo_config],
                           episodes=num_episodes,
                           max_steps_per_episode=200,
                           controller=controller)
@@ -164,7 +164,7 @@ def create_rllib_trainer(env, controller, model_cls, env_name, model_name, train
     rl_config = {
         "train_batch_size": 200,
         'num_workers': 0,
-        'env_config': env.config,
+        'env_config': env.algo_config,
         'model': model_config,
     }
     agent = trainer_cls(config=rl_config, env='MPC-BC-v1')

@@ -5,8 +5,8 @@ from gymnasium.envs.classic_control.cartpole import CartPoleEnv
 
 
 class CustomCartPole(CartPoleEnv):
-    def __init__(self, env_config: Dict, render_mode: Optional[str] = None):
-        super().__init__(render_mode)
+    def __init__(self, env_config: Dict, **kwargs):
+        super().__init__(**kwargs)
         
         # Re-intialize parameters to custom
         self.config = env_config

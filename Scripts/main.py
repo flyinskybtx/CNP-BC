@@ -3,7 +3,6 @@ import string
 import time
 
 import ray
-from ray.rllib.agents import a3c, pg
 
 from Algorithms.mpc import NaiveMPCController, CemMPCController
 from Data.basics import remove_data
